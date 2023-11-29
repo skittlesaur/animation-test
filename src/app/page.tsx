@@ -1,25 +1,34 @@
 'use client'
 import { motion, useAnimate } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import cn from 'classnames'
 
 let boxAnimation: any
 let cursorAnimation: any
+
+const texts = ['Awwwards winning animation', 'baraaa>>>', 'Hello there']
 
 const Page = () => {
   const [box, animateBox] = useAnimate()
   const [cursor, animateCursor] = useAnimate()
   const [mouseEnter, setMouseEnter] = useState(false)
+  const [input, setInput] = useState(texts[0])
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [isFocused, setIsFocused] = useState(false)
 
   useEffect(() => {
+    let typingIndex = 0
+    let lastTime = 0
+
     boxAnimation = animateBox(
       box.current,
       {
-        x: -100,
-        y: [0, 100, -150, -150],
-        rotate: [0, 0, -5, -5],
+        x: [0, -100, -100, -100, -100],
+        y: [0, 100, -150, -150, -150, -150, -150],
+        rotate: [0, 0, -5, -5, -5, -5, -5, -5],
       },
       {
-        duration: 5,
+        duration: 8,
         repeat: Infinity,
         repeatType: 'reverse',
       }
@@ -28,13 +37,59 @@ const Page = () => {
     cursorAnimation = animateCursor(
       cursor.current,
       {
-        x: [800, 800, 800, 400, 400],
-        y: [100, 110, 100, 80],
+        x: [800, 800, 800, 400, 400, 400, 400],
+        y: [140, 110, 100, 100, 80, 80, 80, 80],
       },
       {
-        duration: 5,
+        duration: 8,
         repeat: Infinity,
         repeatType: 'reverse',
+        onUpdate: () => {
+          const time = cursorAnimation.time % (cursorAnimation.duration * 2)
+          if (time === lastTime) return
+          lastTime = time
+
+          const isTyping = time > 5 && time < 10
+
+          if (isTyping) {
+            cursor.current.src = '/cursor_typing.png'
+            setIsFocused(true)
+
+            if (time > 5.5 && time <= 8) {
+              //  typing animation
+              const text = texts[typingIndex]
+              // get the char index. 5.5 is 0, and 8 is text.length
+              const charIndex = ((time - 5.5) / (8 - 5.5)) * text.length
+              const lastCharIndex = Math.ceil(charIndex)
+
+              const textBefore = text.slice(
+                0,
+                lastCharIndex > text.length ? text.length : lastCharIndex
+              )
+
+              setInput(textBefore)
+            }
+
+            if (time > 9) {
+              typingIndex++
+              if (typingIndex >= texts.length) {
+                typingIndex = 0
+              }
+            }
+
+            return
+          } else {
+            setIsFocused(false)
+          }
+
+          const isPointer = time > 3.7 && time < 12.4
+
+          if (isPointer) {
+            cursor.current.src = '/cursor_pointer.png'
+          } else {
+            cursor.current.src = '/cursor_default.png'
+          }
+        },
       }
     )
   }, [])
@@ -71,32 +126,6 @@ const Page = () => {
     }
   }, [mouseEnter])
 
-  useEffect(() => {
-    let isPointer = false
-    const handleMouseAnimationChange = () => {
-      const { left } = cursor.current.getBoundingClientRect()
-
-      if (left > 740 && left < 790 && !isPointer) {
-        isPointer = true
-        cursor.current.src = '/cursor_pointer.png'
-      } else if (isPointer && left >= 790) {
-        isPointer = false
-        cursor.current.src = '/cursor_default.png'
-      }
-    }
-
-    const observer = new MutationObserver(handleMouseAnimationChange)
-
-    observer.observe(cursor.current, {
-      attributes: true,
-      attributeFilter: ['style'],
-    })
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
-
   return (
     <div className="w-screen h-screen flex items-center justify-center bg-orange-200">
       <div
@@ -111,10 +140,22 @@ const Page = () => {
         <motion.div
           ref={box}
           className="right-0 bottom-0 absolute bg-purple-400 w-[30rem] h-[20rem] p-4">
-          <input
-            className="w-full h-20 bg-transparent text-xl"
-            defaultValue="Awwwards winning animation"
-          />
+          <div className="relative w-full h-fit">
+            <input
+              ref={inputRef}
+              className={cn(
+                'w-full h-20 bg-transparent text-xl border-2 p-2 focus:border-white rounded-lg outline-0',
+                {
+                  'border-transparent': !isFocused,
+                  'border-white': isFocused,
+                }
+              )}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value)
+              }}
+            />
+          </div>
         </motion.div>
       </div>
     </div>
