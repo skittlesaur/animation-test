@@ -17,8 +17,10 @@ const Page = () => {
   const [isFocused, setIsFocused] = useState(false)
 
   useEffect(() => {
-    let typingIndex = 0
+    let typingIndex = 1
     let lastTime = 0
+    let cleared = false
+    let completed = false
 
     boxAnimation = animateBox(
       box.current,
@@ -55,7 +57,21 @@ const Page = () => {
             cursor.current.src = '/cursor_typing.png'
             setIsFocused(true)
 
-            if (time > 5.5 && time <= 8) {
+            if (!cleared) {
+              cleared = true
+              inputRef.current?.focus()
+              setTimeout(() => {
+                // select input text
+                inputRef.current?.setSelectionRange(0, input.length)
+
+                setTimeout(() => {
+                  setInput('')
+                  inputRef.current?.blur()
+                }, 300)
+              }, 200)
+            }
+
+            if (time > 5.5 && time <= 8 && !completed) {
               //  typing animation
               const text = texts[typingIndex]
               // get the char index. 5.5 is 0, and 8 is text.length
@@ -68,18 +84,21 @@ const Page = () => {
               )
 
               setInput(textBefore)
-            }
 
-            if (time > 9) {
-              typingIndex++
-              if (typingIndex >= texts.length) {
-                typingIndex = 0
+              if (textBefore === text) {
+                completed = true
               }
             }
 
             return
           } else {
             setIsFocused(false)
+            cleared = false
+          }
+
+          if (completed) {
+            completed = false
+            typingIndex = (typingIndex + 1) % texts.length
           }
 
           const isPointer = time > 3.7 && time < 12.4
